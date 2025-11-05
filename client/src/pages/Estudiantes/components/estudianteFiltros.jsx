@@ -3,9 +3,28 @@ import { FaFilter, FaTimes, FaGraduationCap } from 'react-icons/fa';
 
 const estudianteFiltros = ({ onFilterChange, selectedFiltros, carreras, carrerasStatus }) => {
     const isCarrerasLoading = carrerasStatus === 'loading';
-    const hasActiveFilters = selectedFiltros.id_carrera || selectedFiltros.semestre;
-    
-    // Función de limpieza especializada para el botón
+    const hasActiveFilters = !!(selectedFiltros.id_carrera || selectedFiltros.semestre);
+
+    // ✅ Evita enviar undefined cuando se limpian los filtros
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+
+        // Si el usuario selecciona "Todas las Carreras" => limpiar filtro
+        if (name === 'id_carrera' && (value === '' || value === undefined)) {
+            onFilterChange({ target: { name, value: null } });
+            return;
+        }
+
+        // Si semestre está vacío => limpiar
+        if (name === 'semestre' && (value === '' || value === undefined)) {
+            onFilterChange({ target: { name, value: null } });
+            return;
+        }
+
+        onFilterChange(e);
+    };
+
+    // ✅ Botón limpiar filtros (llama a onFilterChange con valores vacíos)
     const handleClearFilters = () => {
         onFilterChange({ target: { name: 'clear', value: '' } });
     };
@@ -30,7 +49,7 @@ const estudianteFiltros = ({ onFilterChange, selectedFiltros, carreras, carreras
                         <select
                             name="id_carrera"
                             value={selectedFiltros.id_carrera || ''}
-                            onChange={onFilterChange}
+                            onChange={handleFilterChange}
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors bg-white"
                             disabled={isCarrerasLoading}
                         >
@@ -56,7 +75,7 @@ const estudianteFiltros = ({ onFilterChange, selectedFiltros, carreras, carreras
                             type="number"
                             name="semestre"
                             value={selectedFiltros.semestre || ''}
-                            onChange={onFilterChange}
+                            onChange={handleFilterChange}
                             placeholder="Ej. 5"
                             min="1"
                             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"

@@ -18,6 +18,7 @@ import ReduxToast from './components/ReduxToast/ReduxToast';
 // 🚨 Páginas del nuevo contexto (Asumimos que existen estas páginas ahora)
 import CarrerasPage from './pages/Carreras/carreraPage'; 
 import EstudiantesPage from './pages/Estudiantes/estudiantePage';
+import CalendarioPage from './pages/CalendarioPage/calendarioPage'
 
 
 // 🚨 Se eliminan las importaciones de slices y lógica de Redux ajenas a este contexto.
@@ -64,6 +65,9 @@ function App() {
 
                         {/* RUTA DE GESTIÓN DE CARRERAS */}
                         <Route path="/carreras" element={<CarrerasPage />} /> 
+
+                        {/* RUTA DE GESTIÓN DE CARRERAS */}
+                        <Route path="/calendario" element={<CalendarioPage />} /> 
                         
                         {/* 🚨 Se eliminan todas las rutas de Auth, Admin, Products, Services, Contact, Quotations, etc. */}
                         

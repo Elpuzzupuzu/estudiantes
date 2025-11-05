@@ -41,7 +41,7 @@ const Footer = () => {
             <div className="space-y-3 text-sm text-gray-300">
               <div className="flex items-start gap-3">
                 <MapPin size={18} className="text-[#FACC15]" />
-                <p>Calle 26a entre 47 y 51, Col. El Roble<br />Mérida, Yucatán, México C.P 97256</p>
+                <p>Calle 45a por 30c<br />Uman, Yucatán, México C.P 97256</p>
               </div>
               <div className="flex items-center gap-3">
                 <Mail size={18} className="text-[#FACC15]" />
@@ -49,7 +49,7 @@ const Footer = () => {
               </div>
               <div className="flex items-center gap-3">
                 <Phone size={18} className="text-[#FACC15]" />
-                <p>+52 999 363 2630</p>
+                <p>+52 999 4567878</p>
               </div>
             </div>
           </div>

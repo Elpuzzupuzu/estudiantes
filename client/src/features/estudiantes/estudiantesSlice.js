@@ -19,18 +19,29 @@ const initialState = {
  * @param {object} filtros - { id_carrera?: string, semestre?: number }
  */
 export const fetchEstudiantes = createAsyncThunk(
-    'estudiantes/fetchEstudiantes',
-    async (filtros = {}, { rejectWithValue }) => {
-        try {
-            // Construye los parámetros de la URL para filtrar (e.g., /api/estudiantes?id_carrera=UUID)
-            const params = new URLSearchParams(filtros).toString();
-            const response = await api.get(`/estudiantes?${params}`);
-            return response.data; 
-        } catch (err) {
-            return rejectWithValue(err.response.data.message || err.message);
-        }
-    }
+  'estudiantes/fetchEstudiantes',
+  async (filtros = {}) => {
+    // 🧹 Limpiar los filtros vacíos o undefined
+    const params = new URLSearchParams();
+    
+    Object.entries(filtros).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value);
+      }
+    });
+
+    const queryString = params.toString();
+    const url = queryString
+      ? `http://localhost:4000/api/estudiantes?${queryString}`
+      : `http://localhost:4000/api/estudiantes`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Error al obtener estudiantes');
+    const data = await response.json();
+    return data;
+  }
 );
+
 
 /**
  * @description Crea un nuevo estudiante.

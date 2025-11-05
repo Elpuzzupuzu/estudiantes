@@ -7,6 +7,7 @@ import { FaTimes, FaUserPlus, FaGraduationCap, FaStar } from 'react-icons/fa';
 import {
     createEstudiante,
     updateEstudiante,
+    fetchEstudiantes, // ✅ Importado para refrescar lista
 } from '../../../features/estudiantes/estudiantesSlice';
 
 const estudianteFormModal = ({ isOpen, onClose, initialData = null, carreras }) => {
@@ -69,6 +70,10 @@ const estudianteFormModal = ({ isOpen, onClose, initialData = null, carreras }) 
                 toast.success(`✅ Estudiante ${dataToSend.nombre} registrado.`);
                 setFormData(initialFormData); 
             }
+
+            // 🔄 Refrescar lista de estudiantes
+            await dispatch(fetchEstudiantes());
+
             onClose(); 
         } catch (error) {
             toast.error(`❌ Error al guardar: ${error?.message || 'Error desconocido'}`);
