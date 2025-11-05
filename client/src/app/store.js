@@ -1,24 +1,15 @@
+// client/src/store/store.js
 
 import { configureStore } from "@reduxjs/toolkit";
-
-// Slices
-import productsReducer from "../features/products/productsSlice";
-import adminProductsReducer from "../features/products/adminProductsSlice";
-import userReducer from "../features/user/usersSlice";
-import wishlistReducer from "../features/wishlist/wishListSlice";
-import pdfsReducer from "../features/pdfs/pdfSlice"; // ✅ Importar
-import cartReducer from "../features/cart/cartSlice"
-import quoteReducer from "../features/quotations/quotationSlice"
+import carrerasReducer from "../features/carreras/carrerasSlice.js";
+// ✅ Importar el nuevo reducer
+import estudiantesReducer from "../features/estudiantes/estudiantesSlice.js"; 
 
 
 export const store = configureStore({
-  reducer: {
-    products: productsReducer,
-    adminProducts: adminProductsReducer,
-    user: userReducer,
-    cart :cartReducer,
-    wishlist: wishlistReducer,
-    pdfs: pdfsReducer,
-    quotations : quoteReducer
-  },
+    reducer: {
+        carreras: carrerasReducer,
+        // ✅ Integrando el slice de Estudiantes
+        estudiantes: estudiantesReducer,
+    },
 });

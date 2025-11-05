@@ -1,20 +1,40 @@
-// client/src/components/ReduxToast.jsx
+// client/src/components/ReduxToast/ReduxToast.jsx
+
 import { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
-import { clearSuccessMessage } from "../../features/user/usersSlice";
+
+// 🚨 Se elimina la importación de cualquier acción de usersSlice.
+// import { clearSuccessMessage } from "../../features/user/usersSlice"; 
 
 const ReduxToast = () => {
-  const dispatch = useDispatch();
-  const { notificationMessage } = useSelector((state) => state.user);
+  // 🚨 Eliminamos el uso de useDispatch y cualquier lógica de clearing
+  //    hasta que implementemos un slice de UI dedicado para notificaciones.
+  // const dispatch = useDispatch();
+
+  // 🚨 Reemplazamos el selector de `state.user` por un selector placeholder
+  //    o simplemente lo eliminamos, ya que no hay un campo definido para escuchar.
+  
+  // Opción simple: No hace nada, pero cumple con la importación en App.jsx
+  // Si deseas agregar notificaciones a través de Redux en el futuro:
+  /*
+  const globalNotification = useSelector((state) => state.ui?.notification); 
 
   useEffect(() => {
-    if (notificationMessage) {
-      toast.error(notificationMessage); // muestra el toast con estilo de error
-      dispatch(clearSuccessMessage());  // limpia el mensaje después de mostrarlo
+    if (globalNotification) {
+      // Asume que la notificación es un objeto { message: string, type: 'success' | 'error' }
+      if (globalNotification.type === 'error') {
+        toast.error(globalNotification.message);
+      } else {
+        toast.success(globalNotification.message);
+      }
+      // Aquí se necesitaría una acción global para limpiar el mensaje
+      // dispatch(clearGlobalNotification());
     }
-  }, [notificationMessage]);
+  }, [globalNotification]); 
+  */
 
+  // Por ahora, solo devolvemos null para que no cause errores.
   return null;
 };
 

@@ -1,95 +1,49 @@
 import axios from "axios";
-import { store } from "../app/store";
-import { logoutUser, setNotificationMessage, setAccessToken } from "../features/user/usersSlice";
 
+// 🚨 Ya no necesitamos importar slices de Redux o el store,
+//    porque la autenticación y el manejo de tokens han sido eliminados.
+// import { store } from "../app/store";
+// import { logoutUser, setNotificationMessage, setAccessToken } from "../features/user/usersSlice";
+
+// Define la URL base de tu servidor Express
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000/api";
 
 const api = axios.create({
     baseURL: API_BASE_URL,
-    withCredentials: true, // importante para cookies HttpOnly
+    // Mantenemos withCredentials por si el servidor usa cookies para alguna otra cosa,
+    // aunque la lógica de interceptores de token se elimina.
+    withCredentials: true, 
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
 // ===============================
-// INTERCEPTOR DE SOLICITUDES
+// INTERCEPTOR DE SOLICITUDES (Simplificado)
 // ===============================
+// 🚨 Eliminamos la inyección del Authorization: Bearer Token.
 api.interceptors.request.use(
     (config) => {
-        const state = store.getState();
-        const accessToken = state.user.accessToken;
-
-        if (accessToken) {
-            config.headers.Authorization = `Bearer ${accessToken}`;
-        }
-
+        // En un contexto sin tokens de acceso, simplemente devolvemos la configuración.
+        // Si usas tokens basados en cookies HTTPOnly, el navegador los manejará automáticamente.
         return config;
     },
     (error) => Promise.reject(error)
 );
 
 // ===============================
-// INTERCEPTOR DE RESPUESTAS
+// INTERCEPTOR DE RESPUESTAS (Eliminado el manejo de Refresh Token)
 // ===============================
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-    failedQueue.forEach(prom => {
-        if (error) prom.reject(error);
-        else prom.resolve(token);
-    });
-    failedQueue = [];
-};
-
+// 🚨 Eliminamos toda la lógica de refresh token (isRefreshing, failedQueue, processQueue).
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
-        const originalRequest = error.config;
-        const status = error.response?.status;
-
-        // Solo intentar refresh si es 401/403 y no se ha reintentado esta request
-        if ((status === 401 || status === 403) && !originalRequest._retry) {
-
-            // Evitar reintento infinito en /users/refresh
-            if (originalRequest.url === "/users/refresh") {
-                store.dispatch(setNotificationMessage("Tu sesión expiró. Por favor, inicia sesión de nuevo."));
-                store.dispatch(logoutUser());
-                return Promise.reject(error);
-            }
-
-            if (isRefreshing) {
-                return new Promise((resolve, reject) => {
-                    failedQueue.push({ resolve, reject });
-                })
-                .then(token => {
-                    originalRequest.headers.Authorization = `Bearer ${token}`;
-                    return api(originalRequest);
-                })
-                .catch(err => Promise.reject(err));
-            }
-
-            originalRequest._retry = true;
-            isRefreshing = true;
-
-            try {
-                const refreshResponse = await api.post("/users/refresh");
-                const newToken = refreshResponse.data.accessToken;
-
-                if (newToken) {
-                    store.dispatch(setAccessToken(newToken));
-                    processQueue(null, newToken);
-                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                    return api(originalRequest);
-                }
-            } catch (refreshError) {
-                processQueue(refreshError, null);
-                store.dispatch(setNotificationMessage("Tu sesión expiró. Por favor, inicia sesión de nuevo."));
-                store.dispatch(logoutUser());
-                return Promise.reject(refreshError);
-            } finally {
-                isRefreshing = false;
-            }
-        }
-
+        // Solo para debug: si recibimos un error, lo registramos.
+        // if (error.response?.status) {
+        //     console.error("Error de API:", error.response.status, error.response.data);
+        // }
+        
+        // Devolvemos el error para que el createAsyncThunk lo capture
         return Promise.reject(error);
     }
 );
