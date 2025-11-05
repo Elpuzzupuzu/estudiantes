@@ -4,15 +4,14 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import "express-async-errors"; // Manejo de errores async
-// import path from "path"; // No necesario si no servimos frontend
-// import { fileURLToPath } from "url"; // No necesario si no servimos frontend
 
 // =======================================================
-// 🚨 RUTAS AJUSTADAS
+// 🚨 RUTAS AJUSTADAS E INTEGRACIÓN DE USUARIOS
 // =======================================================
 // Importación por defecto (sin llaves) y usando la nomenclatura en minúsculas
 import CarreraRoutes from "./routes/carreraRoutes.js";
 import EstudianteRoutes from "./routes/estudianteRoutes.js";
+import UsuarioRoutes from "./routes/usuarioRoutes.js"; // ⬅️ ¡NUEVA IMPORTACIÓN!
 
 
 // =======================================================
@@ -52,10 +51,11 @@ app.get("/", (req, res) => {
 });
 
 // =======================================================
-// 📦 RUTAS DE LA API (Integrando Estudiantes y Carreras)
+// 📦 RUTAS DE LA API (Integrando Estudiantes, Carreras y Usuarios)
 // =======================================================
 app.use("/api/carreras", CarreraRoutes);
 app.use("/api/estudiantes", EstudianteRoutes);
+app.use("/api/usuarios", UsuarioRoutes); // ⬅️ ¡INTEGRACIÓN DE RUTAS DE USUARIOS!
 
 
 // =======================================================
