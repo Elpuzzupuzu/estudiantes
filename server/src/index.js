@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import "express-async-errors"; // Manejo de errores async
 import path from "path";
 import { fileURLToPath } from "url";
+import http from "http"; // 🚨 NUEVA IMPORTACIÓN: Módulo HTTP nativo
+import { Server } from "socket.io"; // 🚨 NUEVA IMPORTACIÓN: Socket.IO Server
 
 // Rutas
 import productsRoutes from "./routes/productsRoutes.js";
@@ -14,8 +16,8 @@ import userRoutes from "./routes/userRoutes.js";
 import whishListRoutes from "./routes/wishListRoutes.js";
 import pdfRoutes from "./routes/pdfRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
-import quotationRoutes from "./routes/quotationRoutes.js"; // 
-import orderRoutes from "./routes/orderRoutes.js"; // <<< AGREGADO
+import quotationRoutes from "./routes/quotationRoutes.js"; 
+import orderRoutes from "./routes/orderRoutes.js"; 
 
 
 // =======================================================
@@ -26,22 +28,18 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// =======================================================
-// 🚨 CONFIGURACIÓN CRÍTICA PARA RENDER / HTTPS / COOKIES
-// =======================================================
-// Permite que Express confíe en los encabezados "X-Forwarded-*"
-// enviados por el proxy de Render. Esto es indispensable para
-// que las cookies `secure` funcionen correctamente.
-app.set("trust proxy", 1);
+// -------------------------------------------------------
+// 🚨 1. CREACIÓN DEL SERVIDOR HTTP Y SOCKET.IO
+// -------------------------------------------------------
+// El servidor HTTP debe envolver la aplicación Express
+const server = http.createServer(app); 
 
-// =======================================================
-// 🌐 CORS CONFIG
-// =======================================================
+// Configuración de CORS para Socket.IO
+// Usamos los mismos orígenes que Express, pero Socket.IO necesita su propia config
 const allowedOrigins = [
     "http://localhost:5173", // desarrollo local
 ];
-
-const productionOrigins = process.env.FRONTEND_ORIGINS; // ej: "https://flucsa.onrender.com"
+const productionOrigins = process.env.FRONTEND_ORIGINS; 
 
 if (productionOrigins) {
     const prodOriginsArray = productionOrigins.split(",").map(url => url.trim());
@@ -50,11 +48,49 @@ if (productionOrigins) {
     allowedOrigins.push("https://flucsa.onrender.com");
 }
 
+const io = new Server(server, {
+    cors: {
+        origin: allowedOrigins,
+        methods: ["GET", "POST"],
+        credentials: true // Permite la sincronización de cookies/sesiones (si es necesario)
+    }
+});
+
+// -------------------------------------------------------
+// 🚨 2. INTEGRACIÓN: Hacer 'io' accesible en las rutas
+// -------------------------------------------------------
+// Creamos un middleware para adjuntar la instancia io al objeto req
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
+// -------------------------------------------------------
+//  3. MANEJO DE CONEXIONES SOCKET.IO (Lógica de Debug)
+// -------------------------------------------------------
+io.on('connection', (socket) => {
+    console.log(`✅ Socket conectado: ${socket.id}`);
+
+    // Opcional: Escuchar un evento de desconexión
+    socket.on('disconnect', () => {
+        console.log(`❌ Socket desconectado: ${socket.id}`);
+    });
+});
+
+
+// =======================================================
+//  CONFIGURACIÓN CRÍTICA PARA RENDER / HTTPS / COOKIES
+// =======================================================
+app.set("trust proxy", 1); // Indispensable para cookies `secure`
+
+// =======================================================
+// 🌐 CORS CONFIG (Express)
+// =======================================================
 app.use(
     cors({
         origin: allowedOrigins,
-        credentials: true, // permite cookies cross-site
-        optionsSuccessStatus: 200, // evita errores en preflight requests
+        credentials: true, 
+        optionsSuccessStatus: 200,
     })
 );
 
@@ -81,10 +117,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/wishlist", whishListRoutes);
 app.use("/api/carrito", cartRoutes);
 app.use("/api/pdfs", pdfRoutes);
-app.use("/api/quotations", quotationRoutes); // <<< MONTAJE DE LA RUTA
-app.use("/api/orders", orderRoutes); // <<< MONTAJE DE LA RUTA
-
-
+app.use("/api/quotations", quotationRoutes); 
+app.use("/api/orders", orderRoutes); 
 
 
 // =======================================================
@@ -95,10 +129,8 @@ const __dirname = path.dirname(__filename);
 const clientDistPath = path.join(__dirname, "../../client/dist");
 
 if (process.env.NODE_ENV === "production") {
-    // Servir archivos estáticos de React/Vite
     app.use(express.static(clientDistPath));
 
-    // Redirigir cualquier ruta no-API al index.html (para React Router)
     app.get("*", (req, res) => {
         if (!req.path.startsWith("/api")) {
             res.sendFile(path.join(clientDistPath, "index.html"));
@@ -117,7 +149,8 @@ app.use((err, req, res, next) => {
 // =======================================================
 // 🚀 LEVANTAR SERVIDOR
 // =======================================================
-app.listen(PORT, () => {
-    console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
+// 🚨 CAMBIO CRÍTICO: Usamos 'server.listen' en lugar de 'app.listen'
+server.listen(PORT, () => {
+    console.log(`✅ Servidor Express y Socket.IO corriendo en el puerto ${PORT}`);
     console.log("🌐 Orígenes permitidos:", allowedOrigins);
 });

@@ -7,7 +7,7 @@ const AdminRoute = ({ children }) => {
   const { user, loading, authChecked } = useSelector((state) => state.user);
   const isLoggedIn = !!user;
 
-  console.log("🧩 AdminRoute state:", { user, loading, authChecked, isLoggedIn });
+  // console.log("🧩 AdminRoute state:", { user, loading, authChecked, isLoggedIn });
 
   // --- 1️⃣ CORREGIDO: Usamos `!authChecked` para esperar a que la verificación inicial termine. ---
   // Si la verificación inicial (`checkAuthStatus` en App.jsx) aún no ha finalizado, 
@@ -42,7 +42,7 @@ const AdminRoute = ({ children }) => {
   }
 
   // 5️⃣ Acceso permitido
-  console.log("✅ Acceso permitido al panel admin");
+  // console.log("✅ Acceso permitido al panel admin");
   return children;
 };
 

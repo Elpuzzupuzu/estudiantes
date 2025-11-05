@@ -1,7 +1,7 @@
 // client/src/features/user/usersSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios"; // Configurado con withCredentials: true
-
+import { supabase } from '../../api/supabaseClient';
 // ===============================
 // THUNKS
 // ===============================

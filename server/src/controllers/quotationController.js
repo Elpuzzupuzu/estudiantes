@@ -6,11 +6,20 @@ import * as QuotationService from '../services/quotationService.js';
 // ==========================================================
 
 async function createQuotation(req, res) {
-    // 💡 ID del usuario viene de req.user.id proporcionado por el middleware
+    //  ID del usuario viene de req.user.id proporcionado por el middleware
     const usuarioId = req.user.id; 
 
     try {
         const cotizacion = await QuotationService.generateQuotation(usuarioId);
+        
+        //  CAMBIO CLAVE: Emisión del evento Socket.IO
+        // Usamos req.io, que fue inyectado en index.js
+        req.io.emit('nueva_cotizacion', { 
+            cotizacion,
+            usuarioId: cotizacion.usuario_id // Opcional: para el filtrado en el frontend
+        });
+        console.log(`📡 Socket.IO: Evento 'nueva_cotizacion' emitido para el usuario ${usuarioId}`);
+        // ---------------------------------------------
         
         res.status(201).json({ 
             message: "Cotización generada con éxito.", 

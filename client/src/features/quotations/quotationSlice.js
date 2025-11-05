@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 // Asumimos que 'api' es tu instancia de axios configurada
 import api from "../../api/axios"; 
+// 🚨 Nota: La importación de 'supabase' ha sido eliminada.
 
 // ===============================
 // THUNKS (Acciones Asíncronas)
@@ -8,15 +9,23 @@ import api from "../../api/axios";
 
 /**
  * Genera una nueva cotización a partir del carrito activo del usuario.
- * POST /api/quotations
  */
 export const createQuotation = createAsyncThunk(
     "quotation/createQuotation",
     async (_, thunkAPI) => {
         try {
+            console.log("➡️ [API] Intentando POST a '/quotations' para crear cotización."); 
+            
             const response = await api.post('/quotations');
+            
+            console.log("⬅️ [API ÉXITO] Cotización creada. Respuesta recibida:", response.data); 
+            
+            // El backend ya emite el evento Socket.IO.
+            // Retornamos el payload para actualizar Redux de forma instantánea.
             return response.data.cotizacion; 
         } catch (error) {
+            console.error("❌ [API ERROR] Falló la creación de la cotización. Error:", error.response?.data || error.message); 
+            
             return thunkAPI.rejectWithValue(
                 error.response?.data || "Error al generar la cotización"
             );
@@ -26,7 +35,6 @@ export const createQuotation = createAsyncThunk(
 
 /**
  * Obtiene la lista de cotizaciones del usuario o todas (si es admin).
- * GET /api/quotations
  */
 export const fetchQuotations = createAsyncThunk(
     "quotation/fetchQuotations",
@@ -44,7 +52,6 @@ export const fetchQuotations = createAsyncThunk(
 
 /**
  * Obtiene los detalles de una cotización específica.
- * GET /api/quotations/:id
  */
 export const fetchQuotationById = createAsyncThunk(
     "quotation/fetchQuotationById",
@@ -63,7 +70,6 @@ export const fetchQuotationById = createAsyncThunk(
 
 /**
  * Actualiza el estado de una cotización específica.
- * PATCH /api/quotations/:id/status
  */
 export const updateQuotationStatus = createAsyncThunk(
     "quotation/updateQuotationStatus",
@@ -80,8 +86,7 @@ export const updateQuotationStatus = createAsyncThunk(
 );
 
 /**
- * Elimina o cancela una cotización (la lógica se maneja en el servicio del backend).
- * DELETE /api/quotations/:id
+ * Elimina o cancela una cotización.
  */
 export const deleteQuotation = createAsyncThunk(
     "quotation/deleteQuotation",
@@ -96,6 +101,9 @@ export const deleteQuotation = createAsyncThunk(
         }
     }
 );
+
+// 🚨 Thunk startRealtimeSubscription ha sido eliminado 🚨
+
 
 // ===============================
 // SLICE
@@ -112,18 +120,37 @@ const quotationSlice = createSlice({
         clearQuotationError: (state) => {
             state.error = null;
         },
-        /**
-         * 🚨 NUEVA ACCIÓN: Resetea el estado de éxito temporal del UI.
-         * Elimina la cotización recién creada (asumida en list[0]) para que 
-         * el componente CartFooter pueda volver a su estado inicial.
-         */
         resetQuotationUI: (state) => {
-            // Eliminamos la cotización que se agregó al principio de la lista
-            // en 'createQuotation.fulfilled' para mostrar el éxito en el carrito.
-            state.list = state.list.slice(1); 
             state.loading = false;
             state.error = null;
-        }
+        },
+        /**
+         * 🚨 NUEVO: Añade una cotización recibida de Socket.IO (INSERT).
+         * Usado por el Custom Hook para el evento 'nueva_cotizacion'.
+         */
+        quotationAdded: (state, action) => {
+            const newQuotation = action.payload;
+            const exists = state.list.some(q => q.id === newQuotation.id); 
+            if (!exists) {
+                state.list.unshift(newQuotation); 
+            }
+        },
+        /**
+         * Actualiza una cotización (Usado en fulfilled o por Socket.IO/Admin).
+         */
+        quotationUpdated: (state, action) => {
+            const updatedQuotation = action.payload;
+            const index = state.list.findIndex(q => q.id === updatedQuotation.id);
+            if (index !== -1) { state.list[index] = updatedQuotation; }
+        },
+        /**
+         * Elimina una cotización por ID (DELETE).
+         */
+        quotationRemoved: (state, action) => {
+            const deletedData = action.payload; 
+            const deletedId = deletedData.id || deletedData; 
+            state.list = state.list.filter(q => q.id !== deletedId);
+        },
     },
     extraReducers: (builder) => {
         builder
@@ -133,8 +160,9 @@ const quotationSlice = createSlice({
             })
             .addCase(createQuotation.fulfilled, (state, action) => {
                 state.loading = false;
-                // Agrega la cotización recién creada al inicio de la lista
-                state.list.unshift(action.payload); 
+                // Usamos el reducer 'quotationAdded' para asegurar la lógica de no duplicados 
+                // y que se muestre de inmediato antes de que llegue el evento Socket.IO.
+                quotationSlice.caseReducers.quotationAdded(state, action); 
             })
             .addCase(createQuotation.rejected, (state, action) => {
                 state.loading = false; state.error = action.payload || "Fallo la creación de la cotización";
@@ -146,61 +174,48 @@ const quotationSlice = createSlice({
             })
             .addCase(fetchQuotations.fulfilled, (state, action) => {
                 state.loading = false;
-                state.list = action.payload; // Reemplaza la lista
+                state.list = action.payload; 
             })
             .addCase(fetchQuotations.rejected, (state, action) => {
                 state.loading = false; state.error = action.payload || "Fallo al cargar las cotizaciones";
             })
 
             // --- fetchQuotationById ---
-            .addCase(fetchQuotationById.pending, (state) => {
-                state.loading = true; state.error = null;
-            })
+            .addCase(fetchQuotationById.pending, (state) => { state.loading = true; state.error = null; })
             .addCase(fetchQuotationById.fulfilled, (state, action) => {
                 state.loading = false;
-                const detailedQuotation = action.payload;
-                const index = state.list.findIndex(q => q.id === detailedQuotation.id);
-                if (index !== -1) {
-                    state.list[index] = detailedQuotation;
-                } else {
-                    state.list.push(detailedQuotation);
-                }
+                // Usamos el reducer 'quotationUpdated' para manejar el detalle
+                quotationSlice.caseReducers.quotationUpdated(state, action);
             })
-            .addCase(fetchQuotationById.rejected, (state, action) => {
-                state.loading = false; state.error = action.payload || "Fallo al cargar el detalle";
-            })
+            .addCase(fetchQuotationById.rejected, (state, action) => { state.loading = false; state.error = action.payload || "Fallo al cargar el detalle"; })
             
             // --- updateQuotationStatus ---
-            .addCase(updateQuotationStatus.pending, (state) => {
-                state.loading = true; state.error = null;
-            })
+            .addCase(updateQuotationStatus.pending, (state) => { state.loading = true; state.error = null; })
             .addCase(updateQuotationStatus.fulfilled, (state, action) => {
                 state.loading = false;
-                const updatedQuotation = action.payload;
-                const index = state.list.findIndex(q => q.id === updatedQuotation.id);
-                if (index !== -1) {
-                    state.list[index] = updatedQuotation;
-                }
+                // Usamos el reducer 'quotationUpdated'
+                quotationSlice.caseReducers.quotationUpdated(state, action);
             })
-            .addCase(updateQuotationStatus.rejected, (state, action) => {
-                state.loading = false; state.error = action.payload || "Fallo al actualizar el estado";
-            })
+            .addCase(updateQuotationStatus.rejected, (state, action) => { state.loading = false; state.error = action.payload || "Fallo al actualizar el estado"; })
 
             // --- deleteQuotation ---
-            .addCase(deleteQuotation.pending, (state) => {
-                state.loading = true; state.error = null;
-            })
+            .addCase(deleteQuotation.pending, (state) => { state.loading = true; state.error = null; })
             .addCase(deleteQuotation.fulfilled, (state, action) => {
                 state.loading = false;
+                // Ya que action.payload es el ID, lo manejamos en el fulfilled (no necesitamos el reducer)
                 const deletedId = action.payload;
                 state.list = state.list.filter(q => q.id !== deletedId);
             })
-            .addCase(deleteQuotation.rejected, (state, action) => {
-                state.loading = false; state.error = action.payload || "Fallo la eliminación/cancelación";
-            });
+            .addCase(deleteQuotation.rejected, (state, action) => { state.loading = false; state.error = action.payload || "Fallo la eliminación/cancelación"; });
     },
 });
 
-export const { clearQuotationError, resetQuotationUI } = quotationSlice.actions;
+export const { 
+    clearQuotationError, 
+    resetQuotationUI, 
+    quotationAdded, 
+    quotationUpdated,
+    quotationRemoved 
+} = quotationSlice.actions;
 
 export default quotationSlice.reducer;
